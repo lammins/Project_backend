@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 5000;
 require('dotenv').config();
 
 const app = express();
-app.use(cors({ origin: 'https://projectbackend-copy-production.up.railway.app', credentials: true }));
+app.use(cors({ origin: 'https://https://project-fontend-seven.vercel.app/', credentials: true }));
 
 app.use(express.json({ limit: '20mb' }));
 
