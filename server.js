@@ -8,15 +8,14 @@ const PORT = process.env.PORT || 5000;
 require('dotenv').config();
 
 const app = express();
-app.use(cors({ origin: 'https://project-fontend-navy.vercel.app', credentials: true }));
-
+app.use(cors({ origin: 'https://project-fontend-topaz.vercel.app', credentials: true }));
 app.use(express.json({ limit: '20mb' }));
 
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log('MongoDB error:', err));
 
-// === Models === thay đổi User và Product nếu lưu trong collection khác (nên hỏi gpt để đổi)
+// === Models ===
 const User = mongoose.model('User', new mongoose.Schema({
   username: { type: String, unique: true },
   password: String,
@@ -61,9 +60,14 @@ app.post('/api/login', async (req, res) => {
   res.json({ token });
 });
 
+// === Tìm kiếm sản phẩm hoặc trả về tất cả sản phẩm ===
 app.get('/api/products', verifyToken, async (req, res) => {
   try {
-    const products = await Product.find();
+    const searchTerm = req.query.search || '';
+    const query = searchTerm
+      ? { name: { $regex: searchTerm, $options: 'i' } }
+      : {};
+    const products = await Product.find(query);
     res.json(products);
   } catch {
     res.status(500).json({ message: 'Lỗi server' });
@@ -79,21 +83,6 @@ app.get('/api/products/:id', verifyToken, async (req, res) => {
     res.sendStatus(400);
   }
 });
-
-app.get('/api/products', verifyToken, async (req, res) => {
-  try {
-    const searchTerm = req.query.search || '';
-    const query = searchTerm
-      ? { name: { $regex: searchTerm, $options: 'i' } }
-      : {};
-
-    const products = await Product.find(query);
-    res.json(products);
-  } catch {
-    res.status(500).json({ message: 'Lỗi server' });
-  }
-});
-
 
 app.post('/api/products', verifyToken, async (req, res) => {
   try {
@@ -126,27 +115,25 @@ app.delete('/api/products/:id', verifyToken, async (req, res) => {
   }
 });
 
-//  Tìm ID lớn nhất trong một Category
+// === Tìm ID cao nhất trong một category ===
 app.get('/api/max-id/:category', verifyToken, async (req, res) => {
-    try {
-        const category = req.params.category;
-        const prefix = `LAPTOP${category}`;
-        const latestProduct = await Product.find({ id: { $regex: `^${prefix}` } })
-            .sort({ id: -1 })
-            .limit(1);
+  try {
+    const category = req.params.category;
+    const prefix = `LAPTOP${category}`;
+    const latestProduct = await Product.find({ id: { $regex: `^${prefix}` } })
+      .sort({ id: -1 })
+      .limit(1);
 
-        if (latestProduct.length > 0) {
-        const lastId = latestProduct[0].id;
-        const numberPart = parseInt(lastId.slice(-4));
-        return res.json({ lastNumber: numberPart });
-        } else {
-        return res.json({ lastNumber: 0 });
-        }
-    } catch (err) {
-        res.status(500).json({ message: 'Lỗi khi tìm ID cao nhất' });
+    if (latestProduct.length > 0) {
+      const lastId = latestProduct[0].id;
+      const numberPart = parseInt(lastId.slice(-4));
+      return res.json({ lastNumber: numberPart });
+    } else {
+      return res.json({ lastNumber: 0 });
     }
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi khi tìm ID cao nhất' });
+  }
 });
 
-
 app.listen(PORT, () => console.log(`🚀 Server is running at http://localhost:${PORT}`));
-
